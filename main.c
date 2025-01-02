@@ -258,9 +258,9 @@ int isWin(char*** display, char*** mines, int x, int y) {
 // Funkcja inicjalizująca grę
 void runGame(int x, int y, int minesCount) {
     int moveX, moveY, moves = 0, flagsCount = 0;
+    int started = 0;
     char command;
     char input[100];
-
     char*** display = generateArray(x, y, "███");
     char*** mines = NULL;
 
@@ -282,90 +282,102 @@ void runGame(int x, int y, int minesCount) {
 
         moveX--;
         moveY--;
-
+        
         if (!isValidCommand(command, x, y, moveX, moveY)) {
             continue;
         }
-
-        if (moves == 0) {
-            mines = generateMines(x, y, minesCount, moveX, moveY);
+        moves++;
+        if (command == 'f') {
+            toggleFlag(display, x, y, moveX, moveY, &flagsCount);
         }
-
         if (command == 'r') {
             if (strcmp(display[moveX][moveY], " P ") == 0) {
-                printCommand("Nie można odkryć zaflagowanego pola!");
-                
-                continue;
+                    printCommand("Nie można odkryć zaflagowanego pola!");
+                    continue;
+                }
+            if (started == 0) {
+                mines = generateMines(x, y, minesCount, moveX, moveY);
+                started++;
             }
-
-            if (strcmp(mines[moveX][moveY], " o ") == 0) {
-                printCommand("Przegrałeś! Trafiłeś na minę!");
-                printDisplay(mines, x, y, minesCount, flagsCount);
-                return;
+            else
+            {
+                if (strcmp(mines[moveX][moveY], " o ") == 0) {
+                    printCommand("Przegrałeś! Trafiłeś na minę!");
+                    printDisplay(mines, x, y, minesCount, flagsCount);
+                    return;
+                }
+                if (isWin(display, mines, x, y)) {
+                    printCommand("Gratulacje! Wygrałeś!");
+                    printDisplay(mines, x, y, minesCount, flagsCount);
+                    return;
+                }
             }
 
             revealCell(display, mines, x, y, moveX, moveY);
-        } else if (command == 'f') {
-            toggleFlag(display, x, y, moveX, moveY, &flagsCount);
         }
 
-        moves++;
-
-        if (isWin(display, mines, x, y)) {
-            printCommand("Gratulacje! Wygrałeś!");
-            printDisplay(mines, x, y, minesCount, flagsCount);
-            return;
-        }
+        
+        
+        
     }
 }
 
 int main() {
     CLEAR_SCREEN();
     int x, y, minesCount;
-    printf("┌─────────────────────────────┐\n");
-    printf("│   Wybierz poziom trudności  │\n");
-    printf("├────────────┬───────┬────────┤\n");
-    printf("│ 1 - Łatwy  │ 9x9   │ 10 min │\n");
-    printf("│ 2 - Średni │ 16x16 │ 40 min │\n");
-    printf("│ 3 - Trudny │ 16x30 │ 99 min │\n");
-    printf("│ 4 - Własny │       │        │\n");
-    printf("└────────────┴───────┴────────┘\n");
-    printf("Wybierz: ");
+    int s = 0;
+    while(s == 0)
+    {
+        printf("┌─────────────────────────────┐\n");
+        printf("│   Wybierz poziom trudności  │\n");
+        printf("├────────────┬───────┬────────┤\n");
+        printf("│ 1 - Łatwy  │ 9x9   │ 10 min │\n");
+        printf("│ 2 - Średni │ 16x16 │ 40 min │\n");
+        printf("│ 3 - Trudny │ 16x30 │ 99 min │\n");
+        printf("│ 4 - Własny │       │        │\n");
+        printf("└────────────┴───────┴────────┘\n");
+        printf("Wybierz: ");
 
-    int choice;
-    scanf("%d", &choice);
+        int choice;
+        scanf("%d", &choice);
 
-    switch (choice) {
-        case 1:
-            x = 9;
-            y = 9;
-            minesCount = 10;
-            break;
-        case 2:
-            x = 16;
-            y = 16;
-            minesCount = 40;
-            break;
-        case 3:
-            x = 30;
-            y = 16;
-            minesCount = 99;
-            break;
-        case 4:
-            printf("Podaj wymiar x (kolumny): ");
-            scanf("%d", &x);
-            printf("Podaj wymiar y (wiersze): ");
-            scanf("%d", &y);
-            printf("Podaj liczbę min: ");
-            scanf("%d", &minesCount);
-            break;
-        default:
-            printf("Niepoprawny wybór!\n");
-            return 0;
+        switch (choice) {
+            case 1:
+                s = 1;
+                x = 9;
+                y = 9;
+                minesCount = 10;
+                break;
+            case 2:
+                s = 1;
+                x = 16;
+                y = 16;
+                minesCount = 40;
+                break;
+            case 3:
+                s = 1;
+                x = 30;
+                y = 16;
+                minesCount = 99;
+                break;
+            case 4:
+                s = 1;
+                printf("Podaj wymiar x (kolumny): ");
+                scanf("%d", &x);
+                printf("Podaj wymiar y (wiersze): ");
+                scanf("%d", &y);
+                printf("Podaj liczbę min: ");
+                scanf("%d", &minesCount);
+                break;
+            default:
+                CLEAR_SCREEN();
+                printCommand("Niepoprawny wybór!");
+                break;
+        }
+
+        while (getchar() != '\n'); // Oczyszczanie bufora wejściowego
     }
-
-    while (getchar() != '\n'); // Oczyszczanie bufora wejściowego
-
+    CLEAR_SCREEN();
     runGame(x, y, minesCount);
 
     return 0;
