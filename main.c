@@ -3,6 +3,14 @@
 #include <string.h>
 #include <time.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#define CLEAR_SCREEN() system("cls")
+#else
+#include <unistd.h>
+#define CLEAR_SCREEN() system("clear")
+#endif
+
 // Funkcja do generowania tablicy (ogólna)
 char*** generateArray(int x, int y, const char* initialValue) {
     char*** array = (char***)malloc(x * sizeof(char**));
@@ -32,6 +40,27 @@ char*** generateArray(int x, int y, const char* initialValue) {
 }
 
 // Funkcja do wypisywania tablicy z ramką
+void printCommand(char* comm) {
+    // Obliczanie długości uwzględniającej znaki wielobajtowe
+    int len = 0;
+    for (char* c = comm; *c != '\0'; c++) {
+        len += (*c & 0xC0) != 0x80; // Zlicza tylko pierwszy bajt każdego znaku
+    }
+
+    printf("\n┌");
+    for (int i = 0; i < len + 2; i++) { // Długość komunikatu + 2 spacje
+        printf("─");
+    }
+    printf("┐\n│ %s │\n└", comm);
+    for (int i = 0; i < len + 2; i++) {
+        printf("─");
+    }
+    printf("┘\n");
+}
+
+
+
+
 void printDisplay(char*** display, int x, int y, int minesCount, int flagsCount) {
     int maxRowDigits = snprintf(NULL, 0, "%d", y) + 1;
     int rowLength = (maxRowDigits + (x * 4) - 5) / 2;
@@ -191,11 +220,11 @@ void toggleFlag(char*** display, int x, int y, int col, int row, int* flagsCount
 // Sprawdzenie poprawności komendy
 int isValidCommand(char command, int x, int y, int col, int row) {
     if (command != 'r' && command != 'f') {
-        printf("Nieznana komenda! Użyj 'r' do odkrycia pola lub 'f' do flagowania.\n");
+        printCommand("Nieznana komenda! Użyj r do odkrycia pola lub f do flagowania.");
         return 0;
     }
     if (col < 0 || col >= x || row < 0 || row >= y) {
-        printf("Współrzędne poza zakresem planszy!\n");
+        printCommand("Współrzędne poza zakresem planszy!");
         return 0;
     }
     return 1;
@@ -203,8 +232,12 @@ int isValidCommand(char command, int x, int y, int col, int row) {
 
 // Sprawdzenie poprawności formatu komendy
 int parseCommand(char* input, char* command, int* col, int* row) {
+    if (strcmp(input, "quit\n") == 0) {
+        return -1; // Specjalny kod oznaczający wyjście z gry
+    }
+
     if (sscanf(input, " %c %d %d", command, col, row) != 3) {
-        printf("Niepoprawny format komendy! Użyj: r [kolumna] [wiersz] lub f [kolumna] [wiersz].\n");
+        printCommand("Niepoprawny format komendy! Użyj: r [kolumna] [wiersz] lub f [kolumna] [wiersz].");
         return 0;
     }
     return 1;
@@ -236,8 +269,14 @@ void runGame(int x, int y, int minesCount) {
 
         printf("   Podaj ruch: ");
         fgets(input, sizeof(input), stdin);
+        CLEAR_SCREEN();
 
-        if (!parseCommand(input, &command, &moveX, &moveY)) {
+        int parseResult = parseCommand(input, &command, &moveX, &moveY);
+        if (parseResult == -1) {
+            printCommand("Gra zakończona!");
+            return;
+        }
+        if (parseResult == 0) {
             continue;
         }
 
@@ -254,12 +293,13 @@ void runGame(int x, int y, int minesCount) {
 
         if (command == 'r') {
             if (strcmp(display[moveX][moveY], " P ") == 0) {
-                printf("Nie można odkryć zaflagowanego pola!\n");
+                printCommand("Nie można odkryć zaflagowanego pola!");
+                
                 continue;
             }
 
             if (strcmp(mines[moveX][moveY], " o ") == 0) {
-                printf("Przegrałeś! Trafiłeś na minę!\n");
+                printCommand("Przegrałeś! Trafiłeś na minę!");
                 printDisplay(mines, x, y, minesCount, flagsCount);
                 return;
             }
@@ -272,7 +312,7 @@ void runGame(int x, int y, int minesCount) {
         moves++;
 
         if (isWin(display, mines, x, y)) {
-            printf("Gratulacje! Wygrałeś!\n");
+            printCommand("Gratulacje! Wygrałeś!");
             printDisplay(mines, x, y, minesCount, flagsCount);
             return;
         }
@@ -280,14 +320,50 @@ void runGame(int x, int y, int minesCount) {
 }
 
 int main() {
+    CLEAR_SCREEN();
     int x, y, minesCount;
+    printf("┌─────────────────────────────┐\n");
+    printf("│   Wybierz poziom trudności  │\n");
+    printf("├────────────┬───────┬────────┤\n");
+    printf("│ 1 - Łatwy  │ 9x9   │ 10 min │\n");
+    printf("│ 2 - Średni │ 16x16 │ 40 min │\n");
+    printf("│ 3 - Trudny │ 16x30 │ 99 min │\n");
+    printf("│ 4 - Własny │       │        │\n");
+    printf("└────────────┴───────┴────────┘\n");
+    printf("Wybierz: ");
 
-    printf("Podaj wymiar x (kolumny): ");
-    scanf("%d", &x);
-    printf("Podaj wymiar y (wiersze): ");
-    scanf("%d", &y);
-    printf("Podaj liczbę min: ");
-    scanf("%d", &minesCount);
+    int choice;
+    scanf("%d", &choice);
+
+    switch (choice) {
+        case 1:
+            x = 9;
+            y = 9;
+            minesCount = 10;
+            break;
+        case 2:
+            x = 16;
+            y = 16;
+            minesCount = 40;
+            break;
+        case 3:
+            x = 30;
+            y = 16;
+            minesCount = 99;
+            break;
+        case 4:
+            printf("Podaj wymiar x (kolumny): ");
+            scanf("%d", &x);
+            printf("Podaj wymiar y (wiersze): ");
+            scanf("%d", &y);
+            printf("Podaj liczbę min: ");
+            scanf("%d", &minesCount);
+            break;
+        default:
+            printf("Niepoprawny wybór!\n");
+            return 0;
+    }
+
     while (getchar() != '\n'); // Oczyszczanie bufora wejściowego
 
     runGame(x, y, minesCount);
