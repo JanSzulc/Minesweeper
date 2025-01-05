@@ -6,10 +6,12 @@
 #ifdef _WIN32
 #include <windows.h>
 #define CLEAR_SCREEN() system("cls")
+#define SET_ENCODING() system("chcp 65001 > nul")
 #else
 #include <unistd.h>
 #define CLEAR_SCREEN() system("clear")
 #endif
+
 
 // Funkcja do generowania tablicy (ogólna)
 char*** generateArray(int x, int y, const char* initialValue) {
@@ -323,6 +325,7 @@ void runGame(int x, int y, int minesCount) {
 }
 
 int main() {
+    SET_ENCODING();
     CLEAR_SCREEN();
     int x, y, minesCount;
     int s = 0;
