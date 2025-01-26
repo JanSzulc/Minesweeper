@@ -4,7 +4,10 @@
 #include "mines.h"
 #include "scores.h"
 #include "loader.h"
+#include "instruction.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 void runGame(int x, int y, int minesCount, int countingPoints) {
     int moveX, moveY, moves = 0, flagsCount = 0;
@@ -83,6 +86,42 @@ void runGame(int x, int y, int minesCount, int countingPoints) {
 int main(int argc, char* argv[]) {
     SET_ENCODING();
     CLEAR_SCREEN();
+    int opt;
+    char *filename = NULL;
+    int showInstruction = 0;
+
+    // Parsowanie opcji
+    while ((opt = getopt(argc, argv, "if:")) != -1) {
+        switch (opt) {
+            case 'i':
+                showInstruction = 1;
+                break;
+            case 'f':
+                filename = optarg;
+                break;
+            default: /* '?' */
+                fprintf(stderr, "Użycie: %s [-i] [-f plik]\n", argv[0]);
+                exit(EXIT_FAILURE);
+        }
+    }
+
+    if (showInstruction) {
+        instruction();
+        printf("Naciśnij Enter, aby kontynuować...\n");
+        while (getchar() != '\n');
+        CLEAR_SCREEN();
+    }
+
+    if (filename != NULL) {
+        loadGameFromFile(filename);
+        return 0;
+    }
+
+    if (argc == 3 && strcmp(argv[1], "-f") == 0) {
+        loadGameFromFile(argv[2]);
+        return 0;
+    }
+
 
     if (argc == 3 && strcmp(argv[1], "-f") == 0) {
         loadGameFromFile(argv[2]);
