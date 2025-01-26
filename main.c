@@ -86,22 +86,17 @@ void runGame(int x, int y, int minesCount, int countingPoints) {
 int main(int argc, char* argv[]) {
     SET_ENCODING();
     CLEAR_SCREEN();
-    int opt;
     char *filename = NULL;
     int showInstruction = 0;
 
-    // Parsowanie opcji
-    while ((opt = getopt(argc, argv, "if:")) != -1) {
-        switch (opt) {
-            case 'i':
-                showInstruction = 1;
-                break;
-            case 'f':
-                filename = optarg;
-                break;
-            default: /* '?' */
-                fprintf(stderr, "Użycie: %s [-i] [-f plik]\n", argv[0]);
-                exit(EXIT_FAILURE);
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-i") == 0) {
+            showInstruction = 1;
+        } else if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) {
+            filename = argv[++i];
+        } else {
+            fprintf(stderr, "Użycie: %s [-i] [-f plik]\n", argv[0]);
+            return EXIT_FAILURE;
         }
     }
 
@@ -109,7 +104,6 @@ int main(int argc, char* argv[]) {
         instruction();
         printf("Naciśnij Enter, aby kontynuować...\n");
         while (getchar() != '\n');
-        CLEAR_SCREEN();
     }
 
     if (filename != NULL) {

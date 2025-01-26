@@ -92,7 +92,6 @@ void toggleFlag(char*** display, int x, int y, int col, int row, int* flagsCount
 
 int isWin(char*** display, char*** mines, int x, int y) {
     if (display == NULL || mines == NULL || x <= 0 || y <= 0) {
-        printf("  [ERROR] Invalid input passed to isWin.\n");
         return 0;
     }
 
