@@ -300,21 +300,21 @@ void loadGameFromFile(const char* filePath) {
     }
 
     int rows = 0, columns = 0, minesCount = 0;
-    fscanf(file, "rows: %d\n", &rows);
-    fscanf(file, "columns: %d\n", &columns);
-    fscanf(file, "mines: %d\n", &minesCount);
+    fscanf(file, "wiersze: %d\n", &rows);
+    fscanf(file, "kolumny: %d\n", &columns);
+    fscanf(file, "miny: %d\n", &minesCount);
 
     char*** display = generateArray(columns, rows, "███");
     char*** mines = generateArray(columns, rows, "   ");
 
-    fscanf(file, "mines_positions:\n");
+    fscanf(file, "pozycje_min:\n");
     for (int i = 0; i < minesCount; i++) {
         int x, y;
         fscanf(file, "%d %d\n", &x, &y);
         strcpy(mines[x - 1][y - 1], " o ");
     }
 
-    fscanf(file, "moves:\n");
+    fscanf(file, "ruchy:\n");
     int points = 0, correctSteps = 0;
     char command;
     int col, row;

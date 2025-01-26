@@ -1,8 +1,8 @@
-rows: 9
-columns: 9
-mines: 10
+wiersze: 9
+kolumny: 9
+miny: 10
 
-mines_positions:
+pozycje_min:
 2 3
 5 5
 6 1
@@ -14,7 +14,7 @@ mines_positions:
 7 2
 3 6
 
-moves:
+ruchy:
 r 1 1
 f 2 3
 r 3 3
