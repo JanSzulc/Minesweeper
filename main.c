@@ -12,7 +12,6 @@
 #define CLEAR_SCREEN() system("clear")
 #endif
 
-
 // Funkcja do generowania tablicy (ogólna)
 char*** generateArray(int x, int y, const char* initialValue) {
     char*** array = (char***)malloc(x * sizeof(char**));
@@ -41,16 +40,25 @@ char*** generateArray(int x, int y, const char* initialValue) {
     return array;
 }
 
+void freeArray(char*** array, int x, int y) {
+    for (int i = 0; i < x; i++) {
+        for (int j = 0; j < y; j++) {
+            free(array[i][j]);
+        }
+        free(array[i]);
+    }
+    free(array);
+}
+
 // Funkcja do wypisywania tablicy z ramką
 void printCommand(char* comm) {
-    // Obliczanie długości uwzględniającej znaki wielobajtowe
     int len = 0;
     for (char* c = comm; *c != '\0'; c++) {
-        len += (*c & 0xC0) != 0x80; // Zlicza tylko pierwszy bajt każdego znaku
+        len += (*c & 0xC0) != 0x80;
     }
 
     printf("\n┌");
-    for (int i = 0; i < len + 2; i++) { // Długość komunikatu + 2 spacje
+    for (int i = 0; i < len + 2; i++) {
         printf("─");
     }
     printf("┐\n│ %s │\n└", comm);
@@ -59,9 +67,6 @@ void printCommand(char* comm) {
     }
     printf("┘\n");
 }
-
-
-
 
 void printDisplay(char*** display, int x, int y, int minesCount, int flagsCount) {
     int maxRowDigits = snprintf(NULL, 0, "%d", y) + 1;
@@ -110,29 +115,60 @@ void printDisplay(char*** display, int x, int y, int minesCount, int flagsCount)
     }
     printf("───┘\n");
 
-
     int m = minesCount - flagsCount;
     int mLength = snprintf(NULL, 0, "%d", m) + 2;
-    printf("\n%*s┌────────┬", rowLength-mLength, "");
+    printf("\n%*s┌────────┬", rowLength - mLength, "");
     for (int i = 0; i < mLength; i++) {
         printf("─");
     }
     printf("┐\n");
-    for (int i = 0; i < rowLength-mLength; i++) {
+    for (int i = 0; i < rowLength - mLength; i++) {
         printf("─");
     }
     printf("┤  MINY  │ %d ├", m);
-    for (int i = 0; i < rowLength+mLength-4; i++) {
+    for (int i = 0; i < rowLength + mLength - 4; i++) {
         printf("─");
     }
-    printf("\n%*s└────────┴", rowLength-mLength, "");
+    printf("\n%*s└────────┴", rowLength - mLength, "");
     for (int i = 0; i < mLength; i++) {
         printf("─");
     }
     printf("┘\n");
 }
 
-// Funkcja do generowania min
+void revealCell(char*** display, char*** mines, int x, int y, int col, int row, int* points, int countingPoints) {
+    if (col < 0 || col >= x || row < 0 || row >= y || strcmp(display[col][row], "███") != 0) {
+        return;
+    }
+
+    strcpy(display[col][row], mines[col][row]);
+    *points += countingPoints;
+
+    if (strcmp(mines[col][row], "   ") == 0) {
+        for (int di = -1; di <= 1; di++) {
+            for (int dj = -1; dj <= 1; dj++) {
+                if (di != 0 || dj != 0) {
+                    revealCell(display, mines, x, y, col + di, row + dj, points, countingPoints);
+                }
+            }
+        }
+    }
+}
+
+void toggleFlag(char*** display, int x, int y, int col, int row, int* flagsCount) {
+    if (col < 0 || col >= x || row < 0 || row >= y) {
+        return;
+    }
+
+    if (strcmp(display[col][row], "███") == 0) {
+        strcpy(display[col][row], " P ");
+        (*flagsCount)++;
+    } else if (strcmp(display[col][row], " P ") == 0) {
+        strcpy(display[col][row], "███");
+        (*flagsCount)--;
+    }
+}
+
 char*** generateMines(int x, int y, int minesCount, int moveX, int moveY) {
     char*** mines = generateArray(x, y, "   ");
     srand(time(NULL));
@@ -185,72 +221,6 @@ char*** generateMines(int x, int y, int minesCount, int moveX, int moveY) {
     return mines;
 }
 
-// Funkcja odkrywania komórek
-void revealCell(char*** display, char*** mines, int x, int y, int col, int row, int* points, int countingPoints) {
-    // Sprawdzenie warunków brzegowych
-    if (col < 0 || col >= x || row < 0 || row >= y || strcmp(display[col][row], "███") != 0) {
-        return;
-    }
-
-    // Odkrycie komórki i dodanie punktów
-    strcpy(display[col][row], mines[col][row]);
-    *points += countingPoints; // Dodajemy punkty za każdą odkrytą komórkę
-
-    // Jeśli komórka jest pusta, rekurencyjnie odkrywaj sąsiednie komórki
-    if (strcmp(mines[col][row], "   ") == 0) {
-        for (int di = -1; di <= 1; di++) {
-            for (int dj = -1; dj <= 1; dj++) {
-                if (di != 0 || dj != 0) { // Pomijamy bieżącą komórkę
-                    revealCell(display, mines, x, y, col + di, row + dj, points, countingPoints);
-                }
-            }
-        }
-    }
-}
-
-
-// Funkcja do obsługi flag
-void toggleFlag(char*** display, int x, int y, int col, int row, int* flagsCount) {
-    if (col < 0 || col >= x || row < 0 || row >= y) {
-        return;
-    }
-
-    if (strcmp(display[col][row], "███") == 0) {
-        strcpy(display[col][row], " P ");
-        (*flagsCount)++;
-    } else if (strcmp(display[col][row], " P ") == 0) {
-        strcpy(display[col][row], "███");
-        (*flagsCount)--;
-    }
-}
-
-// Sprawdzenie poprawności komendy
-int isValidCommand(char command, int x, int y, int col, int row) {
-    if (command != 'r' && command != 'f') {
-        printCommand("Nieznana komenda! Użyj r do odkrycia pola lub f do flagowania.");
-        return 0;
-    }
-    if (col < 0 || col >= x || row < 0 || row >= y) {
-        printCommand("Współrzędne poza zakresem planszy!");
-        return 0;
-    }
-    return 1;
-}
-
-// Sprawdzenie poprawności formatu komendy
-int parseCommand(char* input, char* command, int* col, int* row) {
-    if (strcmp(input, "quit\n") == 0) {
-        return -1; // Specjalny kod oznaczający wyjście z gry
-    }
-
-    if (sscanf(input, " %c %d %d", command, col, row) != 3) {
-        printCommand("Niepoprawny format komendy! Użyj: r [kolumna] [wiersz] lub f [kolumna] [wiersz].");
-        return 0;
-    }
-    return 1;
-}
-
-// Sprawdzenie warunku wygranej
 int isWin(char*** display, char*** mines, int x, int y) {
     for (int i = 0; i < x; i++) {
         for (int j = 0; j < y; j++) {
@@ -262,7 +232,71 @@ int isWin(char*** display, char*** mines, int x, int y) {
     return 1;
 }
 
-// Funkcja inicjalizująca grę
+void loadGameFromFile(const char* filePath) {
+    FILE* file = fopen(filePath, "r");
+    if (!file) {
+        perror("Nie udało się otworzyć pliku");
+        exit(EXIT_FAILURE);
+    }
+
+    int rows = 0, columns = 0, minesCount = 0;
+    fscanf(file, "rows: %d\n", &rows);
+    fscanf(file, "columns: %d\n", &columns);
+    fscanf(file, "mines: %d\n", &minesCount);
+
+    char*** display = generateArray(columns, rows, "███");
+    char*** mines = generateArray(columns, rows, "   ");
+
+    fscanf(file, "mines_positions:\n");
+    for (int i = 0; i < minesCount; i++) {
+        int x, y;
+        fscanf(file, "%d %d\n", &x, &y);
+        strcpy(mines[x - 1][y - 1], " o ");
+    }
+
+    fscanf(file, "moves:\n");
+    int points = 0, correctSteps = 0;
+    char command;
+    int col, row;
+    int gameState = 0; // 0 p, 1 w, 2 t
+
+    while (fscanf(file, " %c %d %d\n", &command, &col, &row) == 3) {
+        col--;
+        row--;
+
+        if (command == 'r') {
+            if (strcmp(mines[col][row], " o ") == 0) {
+                gameState = 0; // Przegrana, trafiono na minę
+                break;
+            }
+            if (strcmp(display[col][row], "███") == 0) {
+                strcpy(display[col][row], mines[col][row]);
+                points++;
+                correctSteps++;
+            }
+        }
+        if (command == 'f') {
+            if (strcmp(display[col][row], "███") == 0) {
+                correctSteps++;
+            }
+        }
+    }
+
+    if (gameState == 2 && isWin(display, mines, columns, rows)) {
+        gameState = 1; // Wygrana
+    }
+
+    printf("Poprawne kroki: %d\n", correctSteps);
+    printf("Zdobyte punkty: %d\n", points);
+    printf("Stan gry: %d\n", gameState);
+
+    freeArray(display, columns, rows);
+    freeArray(mines, columns, rows);
+    fclose(file);
+}
+
+
+
 void runGame(int x, int y, int minesCount, int countingPoints) {
     int moveX, moveY, moves = 0, flagsCount = 0;
     int started = 0, points = 0;
@@ -272,29 +306,30 @@ void runGame(int x, int y, int minesCount, int countingPoints) {
     char*** mines = NULL;
 
     while (1) {
-        // Wyświetlanie planszy i punktów
         printDisplay(display, x, y, minesCount, flagsCount);
         printf("   Punkty: %d\n", points);
         printf("   Podaj ruch: ");
         fgets(input, sizeof(input), stdin);
         CLEAR_SCREEN();
 
-        // Parsowanie komendy
-        int parseResult = parseCommand(input, &command, &moveX, &moveY);
-        if (parseResult == -1) {
-            printCommand("Gra zakończona!");
-            return;
-        }
-        if (parseResult == 0) {
+        int parseResult = sscanf(input, " %c %d %d", &command, &moveX, &moveY);
+        if (parseResult != 3) {
+            printCommand("Niepoprawny format komendy! Użyj: r [kolumna] [wiersz] lub f [kolumna] [wiersz].");
             continue;
         }
 
-        moveX--; // Konwersja na indeksy tablicy
+        moveX--;
         moveY--;
 
-        if (!isValidCommand(command, x, y, moveX, moveY)) {
+        if (command != 'r' && command != 'f') {
+            printCommand("Nieznana komenda! Użyj r do odkrycia pola lub f do flagowania.");
             continue;
         }
+        if (moveX < 0 || moveX >= x || moveY < 0 || moveY >= y) {
+            printCommand("Współrzędne poza zakresem planszy!");
+            continue;
+        }
+
         moves++;
 
         if (command == 'f') {
@@ -307,33 +342,39 @@ void runGame(int x, int y, int minesCount, int countingPoints) {
                 continue;
             }
             if (started == 0) {
-                mines = generateMines(x, y, minesCount, moveX, moveY); // Inicjalizacja planszy min
+                mines = generateMines(x, y, minesCount, moveX, moveY);
                 started = 1;
             } else {
                 if (strcmp(mines[moveX][moveY], " o ") == 0) {
                     printCommand("Przegrałeś! Trafiłeś na minę!");
                     printDisplay(mines, x, y, minesCount, flagsCount);
+                    freeArray(display, x, y);
+                    freeArray(mines, x, y);
                     return;
                 }
             }
 
-            // Odkrywanie komórki
             revealCell(display, mines, x, y, moveX, moveY, &points, countingPoints);
 
-            // Sprawdzenie warunku wygranej
             if (isWin(display, mines, x, y)) {
                 printCommand("Gratulacje! Wygrałeś!");
                 printDisplay(mines, x, y, minesCount, flagsCount);
+                freeArray(display, x, y);
+                freeArray(mines, x, y);
                 return;
             }
         }
     }
 }
-
-
-int main() {
+int main(int argc, char* argv[]) {
     SET_ENCODING();
     CLEAR_SCREEN();
+
+    if (argc == 3 && strcmp(argv[1], "-f") == 0) {
+        loadGameFromFile(argv[2]);
+        return 0;
+    }
+
     int x, y, minesCount, countingPoints = 0;
     int s = 0;
 
@@ -393,7 +434,7 @@ int main() {
                 }
                 printf("Podaj liczbę min: ");
                 scanf("%d", &minesCount);
-                if (minesCount/(x*y) > 0.8 || (x*y) - 9 < minesCount) {
+                if (minesCount / (x * y) > 0.8 || (x * y) - 9 < minesCount) {
                     s = 0;
                     CLEAR_SCREEN();
                     printCommand("Za dużo min!");
