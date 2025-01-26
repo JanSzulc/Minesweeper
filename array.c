@@ -32,7 +32,6 @@ char*** generateArray(int x, int y, const char* initialValue) {
 
 void freeArray(char*** array, int x, int y) {
     if (array == NULL) {
-        printf("  [DEBUG] Trying to free a NULL array.\n");
         return;
     }
     for (int i = 0; i < x; i++) {
@@ -49,7 +48,6 @@ void freeArray(char*** array, int x, int y) {
     }
     free(array);
     array = NULL;
-    printf("  [DEBUG] Freed array of size %dx%d.\n", x, y);
 }
 
 
