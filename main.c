@@ -10,6 +10,7 @@
 #else
 #include <unistd.h>
 #define CLEAR_SCREEN() system("clear")
+#define SET_ENCODING() do {} while(0)
 #endif
 
 
@@ -63,7 +64,7 @@ void printCommand(char* comm) {
 
 
 
-void printDisplay(char*** display, int x, int y, int minesCount, int flagsCount) {
+void printDisplay(char*** display, int x, int y, int minesCount, int flagsCount, int revealedCount, int multiplier) {
     int maxRowDigits = snprintf(NULL, 0, "%d", y) + 1;
     int rowLength = (maxRowDigits + (x * 4) - 5) / 2;
     printf("\n%*s┌─────────┐\n", rowLength, "");
@@ -130,6 +131,8 @@ void printDisplay(char*** display, int x, int y, int minesCount, int flagsCount)
         printf("─");
     }
     printf("┘\n");
+    int score = revealedCount * multiplier;
+    printf("Aktualny wynik: %d\n", score);
 }
 
 // Funkcja do generowania min
@@ -186,7 +189,7 @@ char*** generateMines(int x, int y, int minesCount, int moveX, int moveY) {
 }
 
 // Funkcja odkrywania komórek
-void revealCell(char*** display, char*** mines, int x, int y, int col, int row) {
+void revealCell(char*** display, char*** mines, int x, int y, int col, int row, int* revealedCount) {
     if (col < 0 || col >= x || row < 0 || row >= y || strcmp(display[col][row], "███") != 0) {
         return;
     }
@@ -197,10 +200,11 @@ void revealCell(char*** display, char*** mines, int x, int y, int col, int row) 
         for (int di = -1; di <= 1; di++) {
             for (int dj = -1; dj <= 1; dj++) {
                 if (di != 0 || dj != 0) {
-                    revealCell(display, mines, x, y, col + di, row + dj);
+                    revealCell(display, mines, x, y, col + di, row + dj, revealedCount);
                 }
             }
         }
+	(*revealedCount)++;
     }
 }
 
@@ -258,16 +262,29 @@ int isWin(char*** display, char*** mines, int x, int y) {
 }
 
 // Funkcja inicjalizująca grę
-void runGame(int x, int y, int minesCount) {
-    int moveX, moveY, moves = 0, flagsCount = 0;
+void runGame(int x, int y, int minesCount, int choice) {
+    int moveX, moveY, moves = 0, flagsCount = 0, revealedCount = 0;
+    int multiplier = 1;
     int started = 0;
     char command;
     char input[100];
     char*** display = generateArray(x, y, "███");
     char*** mines = NULL;
 
+    switch (choice) {
+	    case 1:
+		    multiplier = 1;
+		    break;
+	    case 2: 
+		    multiplier = 2;
+		    break;
+	    case 3: 
+		    multiplier = 3;
+		    break;
+    }
+
     while (1) {
-        printDisplay(display, x, y, minesCount, flagsCount);
+        printDisplay(display, x, y, minesCount, flagsCount, revealedCount, multiplier);
 
         printf("   Podaj ruch: ");
         fgets(input, sizeof(input), stdin);
@@ -305,17 +322,17 @@ void runGame(int x, int y, int minesCount) {
             {
                 if (strcmp(mines[moveX][moveY], " o ") == 0) {
                     printCommand("Przegrałeś! Trafiłeś na minę!");
-                    printDisplay(mines, x, y, minesCount, flagsCount);
+                    printDisplay(mines, x, y, minesCount, flagsCount, revealedCount, multiplier);
                     return;
                 }
                 if (isWin(display, mines, x, y)) {
                     printCommand("Gratulacje! Wygrałeś!");
-                    printDisplay(mines, x, y, minesCount, flagsCount);
+                    printDisplay(mines, x, y, minesCount, flagsCount, revealedCount, multiplier);
                     return;
                 }
             }
 
-            revealCell(display, mines, x, y, moveX, moveY);
+            revealCell(display, mines, x, y, moveX, moveY, &revealedCount);
         }
 
         
@@ -327,7 +344,7 @@ void runGame(int x, int y, int minesCount) {
 int main() {
     SET_ENCODING();
     CLEAR_SCREEN();
-    int x, y, minesCount;
+    int x, y, minesCount, choice;
     int s = 0;
     while(s == 0)
     {
@@ -341,7 +358,7 @@ int main() {
         printf("└────────────┴───────┴────────┘\n");
         printf("Wybierz: ");
 
-        int choice;
+        
         scanf("%d", &choice);
 
         switch (choice) {
@@ -381,7 +398,7 @@ int main() {
         while (getchar() != '\n'); // Oczyszczanie bufora wejściowego
     }
     CLEAR_SCREEN();
-    runGame(x, y, minesCount);
+    runGame(x, y, minesCount, choice);
 
     return 0;
 }
